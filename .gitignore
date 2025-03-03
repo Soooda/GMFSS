@@ -1,0 +1,8 @@
+__pycache__/
+*/__pycache__/
+*.pyc
+.vscode
+checkpoints/*
+outputs/*
+train_log/*
+.DS_Store

@@ -2,7 +2,6 @@ import os
 import shutil
 import torch
 from torch.nn import functional as F
-import torchvision.transforms as T
 import gradio as gr
 import numpy as np
 
@@ -61,13 +60,11 @@ def infer(frame1, frame2, scale, exp):
     for i in range(multi - 1):
         res.append(model.inference(img0, img1, reuse_things, (i+1) * 1.0 / multi))
     ret = []
-    transform = T.ToPILImage()
     for image in res:
         image = F.interpolate(image, (h, w), mode='bilinear', align_corners=False)
         image = (((image[0] * 255.).byte().cpu().numpy().transpose(1, 2, 0))[:h, :w])
-        image = transform(image)
         ret.append(image)
-    return res
+    return ret
 
 with gr.Blocks() as demo:
     gr.Markdown(

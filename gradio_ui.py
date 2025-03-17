@@ -1,6 +1,8 @@
 import os
 import shutil
 import torch
+from torch.nn import functional as F
+import torchvision.transforms as T
 import gradio as gr
 import numpy as np
 
@@ -46,11 +48,25 @@ def infer(frame1, frame2, scale, exp):
     img1 = np.array(frame2)
     img0 = (torch.tensor(img0.transpose(2, 0, 1)).to(device) / 255.).unsqueeze(0)
     img1 = (torch.tensor(img1.transpose(2, 0, 1)).to(device) / 255.).unsqueeze(0)
+    n, c, h, w = img0.shape
+    tmp = max(64, int(64 / scale))
+    ph = ((h - 1) // tmp + 1) * tmp
+    pw = ((w - 1) // tmp + 1) * tmp
+    padding = (0, pw - w, 0, ph - h)
+    img0 = F.interpolate(img0, (ph, pw), mode='bilinear', align_corners=False)
+    img1 = F.interpolate(img1, (ph, pw), mode='bilinear', align_corners=False)
     multi = 2 ** exp
     reuse_things = model.reuse(img0, img1, scale)
     res = []
     for i in range(multi - 1):
         res.append(model.inference(img0, img1, reuse_things, (i+1) * 1.0 / multi))
+    ret = []
+    transform = T.ToPILImage()
+    for image in res:
+        image = F.interpolate(image, (h, w), mode='bilinear', align_corners=False)
+        image = (((image[0] * 255.).byte().cpu().numpy().transpose(1, 2, 0))[:h, :w])
+        image = transform(image)
+        ret.append(image)
     return res
 
 with gr.Blocks() as demo:
